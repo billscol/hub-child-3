@@ -1,10 +1,6 @@
 <?php
 /**
- * Creación y gestión de tablas de base de datos
- * Sistema de Coins
- * 
- * @package Hub_Child_Theme
- * @subpackage Coins_System
+ * Creación de Tablas del Sistema de Coins
  */
 
 // Evitar acceso directo
@@ -73,41 +69,19 @@ function crear_tablas_coins() {
     dbDelta($sql3);
 }
 
-/**
- * Verificar si las tablas existen
- */
-function coins_tables_exist() {
-    global $wpdb;
-    
-    $tables = [
-        $wpdb->prefix . 'coins_historial',
-        $wpdb->prefix . 'coins_reviews_rewarded',
-        $wpdb->prefix . 'coins_social_shares'
-    ];
-    
-    foreach ($tables as $table) {
-        if ($wpdb->get_var("SHOW TABLES LIKE '$table'") != $table) {
-            return false;
-        }
-    }
-    
-    return true;
-}
+// Crear tablas al activar el theme
+add_action('after_switch_theme', 'crear_tablas_coins');
 
-/**
- * Eliminar tablas (usar con precaución)
- */
-function coins_drop_tables() {
-    global $wpdb;
+// También crear al actualizar
+add_action('admin_init', 'verificar_tablas_coins');
+
+function verificar_tablas_coins() {
+    $version_actual = get_option('coins_db_version', '0');
+    $version_requerida = '1.0.0';
     
-    $tables = [
-        $wpdb->prefix . 'coins_historial',
-        $wpdb->prefix . 'coins_reviews_rewarded',
-        $wpdb->prefix . 'coins_social_shares'
-    ];
-    
-    foreach ($tables as $table) {
-        $wpdb->query("DROP TABLE IF EXISTS $table");
+    if (version_compare($version_actual, $version_requerida, '<')) {
+        crear_tablas_coins();
+        update_option('coins_db_version', $version_requerida);
     }
 }
 ?>
