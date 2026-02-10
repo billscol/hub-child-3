@@ -42,6 +42,22 @@ if (file_exists(get_stylesheet_directory() . '/includes/shortcodes/video-product
 }
 
 /**
+ * Cargar shortcode: [boton_reporte]
+ * Sistema de reportes de cursos
+ */
+if (file_exists(get_stylesheet_directory() . '/includes/shortcodes/boton-reporte/index.php')) {
+    require_once get_stylesheet_directory() . '/includes/shortcodes/boton-reporte/index.php';
+}
+
+/**
+ * Cargar shortcode: [dual_buy_buttons]
+ * Botones duales de compra (Comprar Ahora + Ver Carrito)
+ */
+if (file_exists(get_stylesheet_directory() . '/includes/shortcodes/dual-buy-buttons/index.php')) {
+    require_once get_stylesheet_directory() . '/includes/shortcodes/dual-buy-buttons/index.php';
+}
+
+/**
  * Cargar shortcodes de cursos (si existen)
  * Estos son los shortcodes que ya estaban organizados:
  * - filtros-cursos.php
