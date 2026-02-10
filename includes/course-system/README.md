@@ -1,201 +1,254 @@
-# Sistema de Cursos
+# 📚 Sistema de Cursos
 
-## 📋 Descripción
+## Descripción
 
-Sistema completo de gestión de cursos online integrado con WooCommerce.
+Sistema completo de gestión de cursos para WordPress + WooCommerce.
 
-## 🏗️ Estructura
+---
+
+## 📁 Estructura
 
 ```
-course-system/
-├── loader.php                      # Cargador principal
-├── post-types/
-│   ├── course-cpt.php              # Custom Post Type de cursos
-│   └── taxonomies.php              # Categorías y etiquetas
-├── admin/
-│   ├── metaboxes/
-│   │   ├── course-info.php         # Info del curso
-│   │   ├── instructor-info.php     # Info del instructor
-│   │   └── course-settings.php     # Configuraciones
-│   └── admin-columns.php           # Columnas personalizadas
-├── frontend/
-│   ├── template-loader.php         # Cargador de templates
-│   ├── templates/
-│   │   ├── single-course.php       # Template individual
-│   │   ├── archive-course.php      # Listado de cursos
-│   │   └── lesson-player.php       # Reproductor de lección
-│   └── course-display.php          # Funciones de visualización
-├── progress/
-│   ├── course-progress.php         # Progreso del curso
-│   └── lesson-completion.php       # Completar lecciones
-├── certificates/
-│   ├── certificate-generator.php   # Generar certificados
-│   └── templates/
-│       └── default-certificate.php # Template de certificado
-├── integration/
-│   ├── woocommerce-integration.php # Integración WC
-│   └── elementor-widgets.php       # Widgets Elementor
-├── access/
-│   ├── enrollment.php              # Inscripciones
-│   └── access-control.php          # Control de acceso
-└── legacy/
-    └── init.php                    # Compatibilidad
+includes/course-system/
+├── loader.php                  # 🔧 Cargador principal
+├── README.md                   # 📖 Este archivo
+├── curriculum/                 # 📑 Módulos y lecciones
+│   ├── metabox.php            # Backend: metabox en productos
+│   ├── display.php            # Frontend: display automático
+│   └── shortcode.php          # Shortcode [course_curriculum]
+├── reviews/                    # ⭐ Sistema de reseñas
+│   ├── form.php               # Formulario de reseñas
+│   ├── display.php            # Display de reseñas
+│   └── shortcode.php          # Shortcode [resenas_producto]
+├── reports/                    # ⚠️ Sistema de reportes
+│   ├── cpt.php                # Custom Post Type
+│   ├── button.php             # Botón de reporte
+│   └── handler.php            # Procesamiento AJAX
+├── support/                    # 🎫 Tickets de soporte
+│   ├── cpt.php                # CPT de tickets
+│   ├── endpoint.php           # Endpoint /soporte/
+│   └── template.php           # Template del endpoint
+├── dashboard/                  # 🏠 Mi Cuenta personalizado
+│   ├── customization.php      # Personalización del dashboard
+│   └── styles.php             # CSS personalizado
+├── shortcodes/                 # 🎨 Shortcodes
+│   ├── filtros-cursos.php     # Filtros de cursos
+│   ├── grid-cursos.php        # Grid de cursos
+│   └── video-producto.php     # Video en producto
+└── integration/                # 🔗 Integraciones
+    └── dokan.php              # Integración con Dokan
 ```
 
-## 🎯 Funcionalidades
+---
 
-### Gestión de Cursos
-- Custom Post Type `course`
-- Módulos y lecciones
-- Currículum estructurado
-- Contenido multimedia
+## 🚀 Activación
 
-### Sistema de Progreso
-- Tracking de lecciones completadas
-- Porcentaje de avance
-- Historial de progreso
-- Marcadores de finalización
-
-### Certificados
-- Generación automática al completar
-- Plantillas personalizables
-- Descarga en PDF
-- Verificación de autenticidad
-
-### Integración WooCommerce
-- Cursos como productos
-- Control de acceso por compra
-- Inscripción automática
-- Renovaciones y suscripciones
-
-## 🔧 Uso
-
-### En el Theme
+En `functions.php`:
 
 ```php
 // Cargar sistema de cursos
-require_once get_stylesheet_directory() . '/includes/course-system/loader.php';
-```
-
-### Funciones Principales
-
-```php
-// Verificar si usuario tiene acceso
-if (user_has_course_access($course_id, $user_id)) {
-    // Mostrar contenido
+if (file_exists(get_stylesheet_directory() . '/includes/course-system/loader.php')) {
+    require_once get_stylesheet_directory() . '/includes/course-system/loader.php';
 }
-
-// Obtener progreso
-$progress = get_course_progress($course_id, $user_id);
-echo $progress['percentage'] . '%';
-
-// Marcar lección como completada
-mark_lesson_complete($lesson_id, $user_id);
-
-// Generar certificado
-$certificate_url = generate_course_certificate($course_id, $user_id);
 ```
 
-## 📦 Custom Post Type
+---
 
-### course
+## 📑 Curriculum (Módulos y Lecciones)
 
-**Registrado con:**
-- Soporte para: título, editor, thumbnail, excerpt
-- Jerarquía: No
-- Público: Sí
-- Menú: Icono de graduación
+### Backend
 
-**Taxonomías:**
-- `course_category` - Categorías de cursos
-- `course_tag` - Etiquetas
-- `course_level` - Nivel (principiante, intermedio, avanzado)
+- **Metabox** en productos tipo curso
+- Agregar/eliminar módulos
+- Agregar/eliminar lecciones
+- Bloquear módulos (solo visible para compradores)
+- Contador automático de módulos y lecciones
 
-## 📊 Metaboxes
+### Frontend
 
-### Información del Curso
-- Duración
-- Número de lecciones
+- Display automático en páginas de producto
+- Acordeón interactivo
+- Módulos bloqueados muestran "Contenido Privado"
+- Shortcode para usar en cualquier parte
+
+### Shortcode
+
+```
+[course_curriculum]
+```
+
+---
+
+## ⭐ Sistema de Reseñas
+
+### Características
+
+- Formulario personalizado con estrellas
+- Validación de compra (solo compradores)
+- Display destacado de mejor reseña
+- Integración con avatar de WordPress
+- Procesamiento con nonce de seguridad
+
+### Shortcode
+
+```
+[resenas_producto]
+```
+
+---
+
+## ⚠️ Sistema de Reportes
+
+### Tipos de Reportes
+
+- 📅 Curso desactualizado
+- ❌ Error en el curso
+- 🔗 Enlace roto
+- ℹ️ Información incorrecta
+- 🔧 Otro problema
+
+### Características
+
+- Botón flotante en productos
+- Modal AJAX
+- CPT en admin
+- Email de resolución
+- Columnas personalizadas
+
+### Shortcode
+
+```
+[boton_reporte]
+```
+
+---
+
+## 🎫 Tickets de Soporte
+
+### Características
+
+- Custom Post Type `support_ticket`
+- Endpoint `/mi-cuenta/soporte/`
+- Template personalizado
+- Estados: Abierto/Resuelto
+- Solo visible para el autor
+
+---
+
+## 🏠 Dashboard Personalizado
+
+### Características
+
+- Estadísticas visuales
+- Renombrar items del menú:
+  - "Orders" → "Mis Cursos"
+  - "Downloads" → "Recursos"
+  - "Dashboard" → "Inicio"
+- Agregar endpoint "Soporte"
+- CSS moderno con gradientes
+- Responsive 100%
+
+---
+
+## 🎨 Shortcodes Disponibles
+
+### 1. Filtros de Cursos
+
+```
+[filtros_cursos]
+```
+
+Muestra filtros de:
+- Categoría
+- Precio
 - Nivel
-- Idioma
-- Requisitos previos
+- Duración
 
-### Instructor
-- Nombre
-- Biografía
-- Avatar
-- Enlaces sociales
+### 2. Grid de Cursos
 
-### Configuraciones
-- Habilitar/deshabilitar certificado
-- Modo de progreso (lineal o libre)
-- Restricciones de tiempo
-
-## 🎨 Templates Frontend
-
-### Jerarquía de Templates
-
-1. `single-course.php` - Página individual del curso
-2. `archive-course.php` - Listado de cursos
-3. `taxonomy-course_category.php` - Cursos por categoría
-
-### Shortcodes Disponibles
-
-```php
-// Listado de cursos
-[course_grid category="programacion" limit="6"]
-
-// Curso individual
-[course_info id="123"]
-
-// Progreso del usuario
-[my_course_progress]
-
-// Certificados obtenidos
-[my_certificates]
+```
+[grid_cursos limit="12" categoria=""]
 ```
 
-## 🔗 Integraciones
+Atributos:
+- `limit`: Cantidad de cursos
+- `categoria`: Slug de categoría
 
-### WooCommerce
-- Los productos de tipo "curso" se sincronizan
-- Acceso automático al comprar
-- Revocación en reembolsos
+### 3. Video de Producto
 
-### Elementor
-- Widget de listado de cursos
-- Widget de currículum
-- Widget de progreso
-- Widget de certificados
+```
+[video_producto]
+```
 
-### Dokan (Multi-vendor)
-- Vendedores pueden crear cursos
-- Panel de instructor
-- Estadísticas de estudiantes
+Modal con video del curso.
 
-## 🔄 Migración
+---
 
-### Estado Actual
-- ✅ Estructura base creada
-- ⏳ Pendiente: Migrar código legacy
-- ⏳ Pendiente: Implementar progreso avanzado
+## 🔗 Integración con Dokan
 
-### TODO
-- [ ] Mover código de init.php a módulos
-- [ ] Crear sistema de quiz/exámenes
-- [ ] Dashboard de estudiante
-- [ ] Analytics del curso
-- [ ] Gamificación (badges, logros)
+### Características
+
+- Redirección de "Add Product" → `/publicar-curso/`
+- Campos personalizados en formulario de vendedor
+- Compatible con multivendor
+
+---
+
+## 🔒 Seguridad
+
+- ✅ Nonce en todos los formularios
+- ✅ Sanitización de inputs
+- ✅ Escape de outputs
+- ✅ Verificación de permisos
+- ✅ Validación AJAX
+
+---
+
+## 🎨 Estilos
+
+Todos los estilos usan:
+- Color principal: `#da0480` (rosa)
+- Gradientes modernos
+- Bordes redondeados
+- Animaciones suaves
+- Responsive mobile-first
+
+---
+
+## 📧 Emails
+
+- Email de resolución de reportes
+- Template personalizado
+- Incluye link al curso
+
+---
 
 ## 🐛 Debugging
 
+Activar logs:
+
 ```php
-define('COURSE_SYSTEM_DEBUG', true);
+define('WP_DEBUG', true);
+define('WP_DEBUG_LOG', true);
 ```
 
-## 📝 Notas
+Ver logs en: `wp-content/debug.log`
 
-- Compatible con WooCommerce
-- Soporte multi-idioma (WPML, Polylang)
-- Responsive design
-- Accesibilidad WCAG 2.1
+---
+
+## 📝 To-Do
+
+- [ ] Sistema de progreso de cursos
+- [ ] Certificados al completar
+- [ ] Quiz/evaluaciones
+- [ ] Gamificación
+
+---
+
+## 📞 Soporte
+
+Para soporte o consultas, visita `/mi-cuenta/soporte/`
+
+---
+
+✅ **Sistema 100% funcional y organizado**
