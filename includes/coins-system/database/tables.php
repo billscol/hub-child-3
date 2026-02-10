@@ -1,6 +1,10 @@
 <?php
 /**
- * Creación de Tablas del Sistema de Coins
+ * Creación de Tablas de Base de Datos
+ * Tablas necesarias para el sistema de coins
+ * 
+ * @package CoinsSystem
+ * @subpackage Database
  */
 
 // Evitar acceso directo
@@ -9,16 +13,20 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Crear tablas necesarias para el sistema de coins
+ * Crear tablas del sistema de coins
+ * Se ejecuta al activar el tema
  */
-function crear_tablas_coins() {
+function coins_create_database_tables() {
     global $wpdb;
     
     $charset_collate = $wpdb->get_charset_collate();
     
-    // Tabla de historial de coins
-    $tabla_historial = $wpdb->prefix . 'coins_historial';
-    $sql1 = "CREATE TABLE IF NOT EXISTS $tabla_historial (
+    // ============================================
+    // TABLA 1: HISTORIAL DE COINS
+    // ============================================
+    $table_historial = $wpdb->prefix . 'coins_historial';
+    
+    $sql_historial = "CREATE TABLE IF NOT EXISTS $table_historial (
         id bigint(20) NOT NULL AUTO_INCREMENT,
         user_id bigint(20) NOT NULL,
         tipo varchar(20) NOT NULL,
@@ -33,9 +41,12 @@ function crear_tablas_coins() {
         KEY fecha (fecha)
     ) $charset_collate;";
     
-    // Tabla de recompensas por reseñas
-    $tabla_reviews = $wpdb->prefix . 'coins_reviews_rewarded';
-    $sql2 = "CREATE TABLE IF NOT EXISTS $tabla_reviews (
+    // ============================================
+    // TABLA 2: RECOMPENSAS POR RESEÑAS
+    // ============================================
+    $table_reviews = $wpdb->prefix . 'coins_reviews_rewarded';
+    
+    $sql_reviews = "CREATE TABLE IF NOT EXISTS $table_reviews (
         id bigint(20) NOT NULL AUTO_INCREMENT,
         user_id bigint(20) NOT NULL,
         comment_id bigint(20) NOT NULL,
@@ -48,9 +59,12 @@ function crear_tablas_coins() {
         KEY product_id (product_id)
     ) $charset_collate;";
     
-    // Tabla de recompensas por compartir
-    $tabla_shares = $wpdb->prefix . 'coins_social_shares';
-    $sql3 = "CREATE TABLE IF NOT EXISTS $tabla_shares (
+    // ============================================
+    // TABLA 3: RECOMPENSAS POR COMPARTIR
+    // ============================================
+    $table_shares = $wpdb->prefix . 'coins_social_shares';
+    
+    $sql_shares = "CREATE TABLE IF NOT EXISTS $table_shares (
         id bigint(20) NOT NULL AUTO_INCREMENT,
         user_id bigint(20) NOT NULL,
         product_id bigint(20) NOT NULL,
@@ -63,25 +77,44 @@ function crear_tablas_coins() {
         KEY fecha (fecha)
     ) $charset_collate;";
     
+    // Ejecutar las queries
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-    dbDelta($sql1);
-    dbDelta($sql2);
-    dbDelta($sql3);
+    
+    dbDelta($sql_historial);
+    dbDelta($sql_reviews);
+    dbDelta($sql_shares);
+    
+    // Guardar versión de la base de datos
+    update_option('coins_db_version', COINS_VERSION);
 }
 
-// Crear tablas al activar el theme
-add_action('after_switch_theme', 'crear_tablas_coins');
+// Ejecutar al activar el tema
+add_action('after_switch_theme', 'coins_create_database_tables');
 
-// También crear al actualizar
-add_action('admin_init', 'verificar_tablas_coins');
-
-function verificar_tablas_coins() {
-    $version_actual = get_option('coins_db_version', '0');
-    $version_requerida = '1.0.0';
+/**
+ * Verificar y actualizar tablas si es necesario
+ */
+function coins_check_database_version() {
+    $installed_version = get_option('coins_db_version', '0');
     
-    if (version_compare($version_actual, $version_requerida, '<')) {
-        crear_tablas_coins();
-        update_option('coins_db_version', $version_requerida);
+    if (version_compare($installed_version, COINS_VERSION, '<')) {
+        coins_create_database_tables();
     }
+}
+add_action('admin_init', 'coins_check_database_version');
+
+/**
+ * Función auxiliar: Obtener nombre de tabla
+ */
+function coins_get_table_name($table_type) {
+    global $wpdb;
+    
+    $tables = array(
+        'historial' => $wpdb->prefix . 'coins_historial',
+        'reviews' => $wpdb->prefix . 'coins_reviews_rewarded',
+        'shares' => $wpdb->prefix . 'coins_social_shares'
+    );
+    
+    return isset($tables[$table_type]) ? $tables[$table_type] : null;
 }
 ?>

@@ -2,178 +2,218 @@
 
 ## 📋 Descripción
 
-Sistema completo de monedas virtuales (coins) para la plataforma de cursos. Permite a los usuarios ganar y canjear coins por diferentes acciones.
+Sistema completo de monedas virtuales (coins) para cursos online. Permite a los usuarios ganar y canjear coins por cursos gratuitos.
 
-## 🗂️ Estructura de Carpetas
+## 📁 Estructura de Archivos
 
 ```
 coins-system/
-├── loader.php                    # Cargador principal
+├── loader.php                          # 🔧 Cargador principal
+├── README.md                           # 📖 Esta documentación
 ├── database/
-│   └── tables.php                # Creación de tablas BD
+│   └── tables.php                      # 💾 Creación de tablas DB
 ├── core/
-│   ├── coins-manager.php         # Clase principal
-│   ├── balance.php               # Gestión de saldo
-│   └── transactions.php          # Historial de transacciones
+│   ├── class-coins-manager.php         # 🎯 Clase principal
+│   ├── balance.php                     # 💰 Gestión de saldo
+│   └── transactions.php                # 📊 Historial de transacciones
+├── gateway/
+│   └── class-coins-gateway.php         # 💳 Pasarela de pago WC
 ├── rewards/
-│   ├── purchases.php             # Recompensas por compras
-│   ├── reviews.php               # Recompensas por reseñas
-│   └── social-shares.php         # Recompensas por compartir
-├── redemption/
-│   ├── canje.php                 # Sistema de canje
-│   └── validation.php            # Validaciones
-├── payment-gateway/
-│   └── gateway.php               # Pasarela de pago WC
+│   ├── purchases.php                   # 🛒 Recompensas por compra
+│   ├── reviews.php                     # ⭐ Recompensas por reseñas
+│   └── social-shares.php               # 📱 Recompensas por compartir
 ├── admin/
-│   ├── metabox.php               # Metabox de coins
-│   ├── columns.php               # Columnas personalizadas
-│   └── settings.php              # Página de ajustes
+│   ├── metabox.php                     # ⚙️ Metabox en productos
+│   └── columns.php                     # 📋 Columnas personalizadas
 ├── frontend/
-│   ├── display.php               # Mostrar coins al usuario
-│   ├── widgets.php               # Widgets de coins
-│   ├── ajax-handlers.php         # Manejadores AJAX
-│   └── modal.php                 # Modal de coins
-├── integration/
-│   └── woocommerce.php           # Integración con WC
-└── api/
-    └── endpoints.php             # Endpoints REST API
+│   ├── display.php                     # 👁️ Display de coins
+│   ├── modal.php                       # 🔔 Modal de coins
+│   └── user-dropdown.php               # 👤 Dropdown usuario
+└── integration/
+    └── woocommerce-hooks.php           # 🔗 Hooks WooCommerce
 ```
 
 ## 🎯 Funcionalidades
 
-### 💰 Gestión de Saldo
-- Obtener saldo actual de un usuario
-- Agregar coins al saldo
-- Restar coins del saldo
-- Historial completo de transacciones
+### 1. Gestión de Coins
+- ✅ Saldo de coins por usuario
+- ✅ Historial completo de transacciones
+- ✅ Agregar/Restar coins
+- ✅ Validaciones de saldo
 
-### 🎁 Sistema de Recompensas
-- **Por compras**: Gana coins al comprar cursos premium
-- **Por reseñas**: Gana coins al dejar reseñas verificadas
-- **Por compartir**: Gana coins al compartir en redes sociales
+### 2. Sistema de Recompensas
+- 🛒 **Compras**: 1 coin por cada curso premium comprado
+- ⭐ **Reseñas**: 1 coin por cada reseña verificada y aprobada
+- 📱 **Compartir**: Coins por compartir en redes sociales
 
-### 🔄 Sistema de Canje
-- Canjear coins por cursos
-- Validación de saldo suficiente
-- Aplicar descuentos en checkout
-- Historial de canjes
+### 3. Canje de Coins
+- 🎁 Productos gratuitos canjeables con coins
+- 💳 Pasarela de pago integrada en WooCommerce
+- ✅ Validación de saldo antes de canje
+- 🔒 Sistema anti-fraude
 
-### 💳 Pasarela de Pago
-- Pagar con coins en WooCommerce
-- Validación de saldo
-- Integración completa con checkout
+### 4. Integración WooCommerce
+- 🛍️ Productos con costo en coins
+- 💰 Checkout con coins
+- 📦 Procesamiento de pedidos
+- 📧 Notificaciones automáticas
 
-### 📊 Panel de Admin
-- Ver saldo de usuarios
-- Agregar/quitar coins manualmente
-- Historial de transacciones
-- Configuración del sistema
+## 🗄️ Tablas de Base de Datos
 
-### 🖥️ Frontend
-- Mostrar saldo del usuario
-- Widgets de coins
-- Modal de canje
-- Notificaciones
-
-## 📚 Tablas de Base de Datos
-
-### wp_coins_historial
+### `wp_coins_historial`
 Registra todas las transacciones de coins.
 
-**Campos:**
-- `id` - ID único
-- `user_id` - ID del usuario
-- `tipo` - Tipo de transacción (ganado/gastado/canjeado)
-- `cantidad` - Cantidad de coins
-- `saldo_anterior` - Saldo antes de la transacción
-- `saldo_nuevo` - Saldo después de la transacción
-- `descripcion` - Descripción de la transacción
-- `order_id` - ID del pedido relacionado
-- `fecha` - Fecha de la transacción
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | bigint(20) | ID único |
+| user_id | bigint(20) | ID del usuario |
+| tipo | varchar(20) | Tipo de transacción |
+| cantidad | decimal(10,2) | Cantidad de coins |
+| saldo_anterior | decimal(10,2) | Saldo antes |
+| saldo_nuevo | decimal(10,2) | Saldo después |
+| descripcion | text | Descripción |
+| order_id | bigint(20) | ID del pedido (si aplica) |
+| fecha | datetime | Fecha y hora |
 
-### wp_coins_reviews_rewarded
-Registra recompensas por reseñas.
+### `wp_coins_reviews_rewarded`
+Controla recompensas por reseñas (evita duplicados).
 
-**Campos:**
-- `id` - ID único
-- `user_id` - ID del usuario
-- `comment_id` - ID del comentario/reseña
-- `product_id` - ID del producto
-- `coins_otorgados` - Cantidad de coins otorgados
-- `fecha` - Fecha
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | bigint(20) | ID único |
+| user_id | bigint(20) | ID del usuario |
+| comment_id | bigint(20) | ID del comentario |
+| product_id | bigint(20) | ID del producto |
+| coins_otorgados | decimal(10,2) | Coins otorgados |
+| fecha | datetime | Fecha y hora |
 
-### wp_coins_social_shares
-Registra recompensas por compartir.
+### `wp_coins_social_shares`
+Registra compartidos en redes sociales.
 
-**Campos:**
-- `id` - ID único
-- `user_id` - ID del usuario
-- `product_id` - ID del producto compartido
-- `platform` - Plataforma (facebook/twitter/whatsapp)
-- `coins_otorgados` - Cantidad de coins otorgados
-- `fecha` - Fecha
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | bigint(20) | ID único |
+| user_id | bigint(20) | ID del usuario |
+| product_id | bigint(20) | ID del producto |
+| platform | varchar(20) | Plataforma (facebook, twitter, etc) |
+| coins_otorgados | decimal(10,2) | Coins otorgados |
+| fecha | datetime | Fecha y hora |
 
 ## 🔧 Uso
 
 ### Obtener saldo de un usuario
 ```php
-$saldo = coins_manager()->get_balance($user_id);
+$coins_manager = Coins_Manager::get_instance();
+$saldo = $coins_manager->get_coins($user_id);
 ```
 
 ### Agregar coins
 ```php
-coins_manager()->add_coins($user_id, 10, 'Recompensa por compra');
+$coins_manager->add_coins(
+    $user_id,
+    1,
+    'compra',
+    'Compra de curso: ' . $producto_nombre,
+    $order_id
+);
 ```
 
 ### Restar coins
 ```php
-coins_manager()->subtract_coins($user_id, 5, 'Canje de curso');
+$coins_manager->subtract_coins(
+    $user_id,
+    2,
+    'canje',
+    'Canje por curso: ' . $producto_nombre,
+    $order_id
+);
 ```
 
-### Verificar si tiene suficientes coins
+### Verificar si tiene coins suficientes
 ```php
-if (coins_manager()->has_sufficient_balance($user_id, 10)) {
-    // Usuario tiene 10 o más coins
-}
+$tiene_coins = $coins_manager->user_has_coins($user_id, $cantidad_necesaria);
 ```
 
 ## ⚙️ Configuración
 
-El sistema se configura desde:
-- **Admin** → **Coins Settings**
-- Configurar cantidad de coins por acción
-- Configurar productos canjeables
-- Establecer reglas de recompensas
+### Costo en Coins de un Producto
+1. Ir a Productos → Editar producto
+2. En el metabox "Coins para Canje"
+3. Establecer el costo en coins
+4. Guardar
 
-## 🔗 Integración
+### Cantidad de Coins por Recompensa
+Editar en: `includes/coins-system/rewards/purchases.php`
 
-### WooCommerce
-- Se integra automáticamente con el checkout
-- Aparece como método de pago "Coins"
-- Se actualiza el saldo después de cada compra
+```php
+// Línea ~25
+$coins_to_add = 1; // Cambiar cantidad aquí
+```
 
-### Sistema de Reseñas
-- Se integra con el shortcode `[resenas_producto]`
-- Otorga coins automáticamente por reseñas verificadas
+## 🎨 Personalización
 
-## 📝 Notas
+### Cambiar Icono de Coin
+Editar: `frontend/display.php` y `frontend/modal.php`
 
-- Los coins NO son transferibles entre usuarios
-- El saldo nunca puede ser negativo
-- Todas las transacciones quedan registradas
-- Sistema completamente auditable
+```php
+$coin_icon_url = 'https://tu-sitio.com/coin.png';
+```
+
+### Cambiar Colores
+Todos los estilos usan variables CSS:
+- Color principal: `#da0480`
+- Color secundario: `#b00368`
+
+## 🐛 Debugging
+
+### Ver historial de un usuario
+```php
+$transacciones = coins_get_user_transactions($user_id, $limit = 50);
+foreach ($transacciones as $t) {
+    echo "{$t->tipo}: {$t->cantidad} coins - {$t->descripcion}<br>";
+}
+```
+
+### Verificar integridad de tablas
+```php
+coins_check_database_version();
+```
+
+## 📊 Estadísticas
+
+- **Versión**: 2.0.0
+- **Archivos**: 15
+- **Tablas DB**: 3
+- **Hooks WC**: 8+
+- **Líneas de código**: ~2,000
 
 ## 🔐 Seguridad
 
-- Validación de nonces en todas las operaciones
-- Sanitización de datos
-- Verificación de permisos de usuario
-- Prevención de duplicación de recompensas
+✅ Validación de nonce en formularios
+✅ Sanitización de inputs
+✅ Escape de outputs
+✅ Verificación de permisos
+✅ Prevención de inyección SQL
+✅ Control de duplicados
 
-## 📊 Métricas
+## 🆘 Soporte
 
-- Total de coins en circulación
-- Coins ganados por usuario
-- Coins gastados por usuario
-- Tasa de canje
-- Productos más canjeados
+Si encuentras algún problema:
+1. Verifica que WooCommerce esté activo
+2. Revisa los logs de error de WordPress
+3. Verifica que las tablas existan en la base de datos
+
+## 📝 Changelog
+
+### Version 2.0.0 (Febrero 2026)
+- ✅ Reorganización completa del código
+- ✅ Estructura modular
+- ✅ Documentación completa
+- ✅ Mejoras de rendimiento
+
+### Version 1.0.0
+- 🎉 Versión inicial (código mezclado en functions.php)
+
+## 👥 Créditos
+
+Desarrollado para [CursoBarato.co](https://cursobarato.co)
