@@ -13,13 +13,85 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Mostrar coins en el producto (single product)
+ * Shortcode para mostrar saldo de coins
+ * Uso: [coins_balance]
  */
-function coins_display_on_product() {
+function coins_balance_shortcode($atts) {
     if (!is_user_logged_in()) {
-        return;
+        return '<p style="color: #6b7280; font-size: 14px;">Inicia sesión para ver tus coins.</p>';
     }
     
+    $atts = shortcode_atts(array(
+        'style' => 'default' // default, minimal, detailed
+    ), $atts);
+    
+    $user_id = get_current_user_id();
+    $coins_manager = Coins_Manager::get_instance();
+    $balance = coins_get_balance($user_id);
+    $stats = $coins_manager->get_stats($user_id);
+    
+    ob_start();
+    
+    if ($atts['style'] === 'minimal') {
+        ?>
+        <div class="coins-balance-minimal" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: linear-gradient(135deg, #da0480 0%, #b00368 100%); color: #fff; border-radius: 20px; font-weight: 600;">
+            <span style="font-size: 18px;">🪙</span>
+            <span><?php echo esc_html($coins_manager->format_coins($balance)); ?></span>
+        </div>
+        <?php
+    } elseif ($atts['style'] === 'detailed') {
+        ?>
+        <div class="coins-balance-detailed" style="padding: 25px; background: linear-gradient(135deg, rgba(218, 4, 128, 0.1) 0%, rgba(218, 4, 128, 0.05) 100%); border-radius: 16px; border: 1px solid rgba(218, 4, 128, 0.3);">
+            <h3 style="margin: 0 0 20px 0; color: #da0480; font-size: 20px; font-weight: 700;">🪙 Tus Coins</h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div style="padding: 15px; background: rgba(218, 4, 128, 0.08); border-radius: 12px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: #da0480;"><?php echo esc_html($coins_manager->format_coins($balance)); ?></div>
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 5px;">Saldo Actual</div>
+                </div>
+                
+                <div style="padding: 15px; background: rgba(16, 185, 129, 0.08); border-radius: 12px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: #10b981;"><?php echo esc_html($coins_manager->format_coins($stats['total_ganado'])); ?></div>
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 5px;">Total Ganado</div>
+                </div>
+                
+                <div style="padding: 15px; background: rgba(239, 68, 68, 0.08); border-radius: 12px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: 700; color: #ef4444;"><?php echo esc_html($coins_manager->format_coins($stats['total_gastado'])); ?></div>
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 5px;">Total Gastado</div>
+                </div>
+            </div>
+            
+            <div style="padding: 15px; background: rgba(59, 130, 246, 0.08); border-radius: 10px; border-left: 4px solid #3b82f6;">
+                <p style="margin: 0; font-size: 14px; color: #374151;">
+                    <strong style="color: #1e40af;">💡 Cómo ganar más coins:</strong><br>
+                    • Compra cursos premium<br>
+                    • Deja reseñas verificadas<br>
+                    • Comparte en redes sociales
+                </p>
+            </div>
+        </div>
+        <?php
+    } else {
+        // Estilo default
+        ?>
+        <div class="coins-balance-default" style="display: inline-flex; align-items: center; gap: 12px; padding: 12px 20px; background: rgba(218, 4, 128, 0.1); border-radius: 12px; border: 1px solid rgba(218, 4, 128, 0.3);">
+            <span style="font-size: 24px;">🪙</span>
+            <div>
+                <div style="font-size: 12px; color: #6b7280; margin-bottom: 2px;">Tus Coins</div>
+                <div style="font-size: 20px; font-weight: 700; color: #da0480;"><?php echo esc_html($coins_manager->format_coins($balance)); ?></div>
+            </div>
+        </div>
+        <?php
+    }
+    
+    return ob_get_clean();
+}
+add_shortcode('coins_balance', 'coins_balance_shortcode');
+
+/**
+ * Mostrar precio en coins en productos
+ */
+function coins_show_product_coin_price() {
     global $product;
     
     if (!$product) {
@@ -29,196 +101,96 @@ function coins_display_on_product() {
     $coins_manager = Coins_Manager::get_instance();
     $costo_coins = $coins_manager->get_costo_coins_producto($product->get_id());
     
-    // Solo mostrar si el producto tiene costo en coins
     if ($costo_coins <= 0) {
         return;
     }
     
-    $user_id = get_current_user_id();
-    $user_coins = $coins_manager->get_coins($user_id);
-    $tiene_suficientes = $user_coins >= $costo_coins;
-    
     ?>
-    <div class="product-coins-info" style="margin: 25px 0; padding: 20px; background: linear-gradient(135deg, rgba(218, 4, 128, 0.1) 0%, rgba(218, 4, 128, 0.05) 100%); border-radius: 12px; border: 2px solid rgba(218, 4, 128, 0.3);">
-        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 200px;">
-                <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">
-                    🪙 Costo en Coins:
-                </div>
-                <div style="font-size: 28px; font-weight: 800; color: #da0480;">
-                    <?php echo $coins_manager->format_coins($costo_coins); ?> coins
-                </div>
-            </div>
-            
-            <div style="flex: 1; min-width: 200px; padding-left: 20px; border-left: 2px solid rgba(218, 4, 128, 0.2);">
-                <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">
-                    Tu saldo:
-                </div>
-                <div style="font-size: 24px; font-weight: 700; color: <?php echo $tiene_suficientes ? '#10b981' : '#ef4444'; ?>;">
-                    <?php echo $coins_manager->format_coins($user_coins); ?> coins
+    <div class="product-coin-price" style="margin: 20px 0; padding: 18px; background: linear-gradient(135deg, rgba(218, 4, 128, 0.1) 0%, rgba(218, 4, 128, 0.05) 100%); border-radius: 12px; border: 1px solid rgba(218, 4, 128, 0.3);">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+            <span style="font-size: 32px;">🪙</span>
+            <div>
+                <div style="font-size: 13px; color: #6b7280; margin-bottom: 3px;">O cánjea por</div>
+                <div style="font-size: 26px; font-weight: 800; color: #da0480;">
+                    <?php echo esc_html($coins_manager->format_coins($costo_coins)); ?> <span style="font-size: 18px; font-weight: 600;">coins</span>
                 </div>
             </div>
         </div>
         
-        <?php if (!$tiene_suficientes): ?>
-        <div style="margin-top: 15px; padding: 12px; background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; border-radius: 6px;">
-            <p style="margin: 0; color: #ef4444; font-weight: 600; font-size: 14px;">
-                ⚠️ Necesitas <?php echo $coins_manager->format_coins($costo_coins - $user_coins); ?> coins más para canjear este curso.
+        <?php if (is_user_logged_in()) : 
+            $user_coins = coins_get_balance(get_current_user_id());
+            $tiene_coins = $user_coins >= $costo_coins;
+        ?>
+            <div style="padding: 12px; background: rgba(<?php echo $tiene_coins ? '16, 185, 129' : '239, 68, 68'; ?>, 0.1); border-radius: 8px; margin-top: 12px;">
+                <p style="margin: 0; font-size: 14px; color: #374151;">
+                    <?php if ($tiene_coins) : ?>
+                        <strong style="color: #10b981;">✅ Tienes suficientes coins</strong><br>
+                        Saldo actual: <strong><?php echo esc_html($coins_manager->format_coins($user_coins)); ?> coins</strong>
+                    <?php else : ?>
+                        <strong style="color: #ef4444;">⚠️ Te faltan coins</strong><br>
+                        Tienes: <?php echo esc_html($coins_manager->format_coins($user_coins)); ?> | Necesitas: <?php echo esc_html($coins_manager->format_coins($costo_coins - $user_coins)); ?> más
+                    <?php endif; ?>
+                </p>
+            </div>
+        <?php else : ?>
+            <p style="margin: 10px 0 0 0; font-size: 13px; color: #6b7280;">
+                <a href="<?php echo wp_login_url(get_permalink()); ?>" style="color: #da0480; font-weight: 600; text-decoration: underline;">Inicia sesión</a> para ver tu saldo de coins.
             </p>
-        </div>
-        <?php else: ?>
-        <div style="margin-top: 15px; padding: 12px; background: rgba(16, 185, 129, 0.1); border-left: 4px solid #10b981; border-radius: 6px;">
-            <p style="margin: 0; color: #10b981; font-weight: 600; font-size: 14px;">
-                ✅ ¡Tienes suficientes coins! Puedes canjear este curso.
-            </p>
-        </div>
         <?php endif; ?>
     </div>
     <?php
 }
-add_action('woocommerce_single_product_summary', 'coins_display_on_product', 25);
-
-/**
- * Shortcode para mostrar saldo de coins
- * Uso: [user_coins]
- */
-function coins_shortcode_display($atts) {
-    if (!is_user_logged_in()) {
-        return '<span style="color: #9ca3af;">Inicia sesión para ver tus coins</span>';
-    }
-    
-    $atts = shortcode_atts(array(
-        'style' => 'default', // default, badge, large
-        'show_icon' => 'yes',
-        'label' => 'Tus coins:'
-    ), $atts);
-    
-    $coins_manager = Coins_Manager::get_instance();
-    $user_coins = $coins_manager->get_coins(get_current_user_id());
-    $formatted_coins = $coins_manager->format_coins($user_coins);
-    
-    ob_start();
-    
-    switch ($atts['style']) {
-        case 'badge':
-            ?>
-            <span class="coins-badge" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: linear-gradient(135deg, #da0480, #b00368); color: white; border-radius: 20px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 12px rgba(218, 4, 128, 0.3);">
-                <?php if ($atts['show_icon'] === 'yes'): ?>
-                    🪙
-                <?php endif; ?>
-                <?php echo esc_html($formatted_coins); ?>
-            </span>
-            <?php
-            break;
-            
-        case 'large':
-            ?>
-            <div class="coins-display-large" style="padding: 25px; background: linear-gradient(135deg, rgba(218, 4, 128, 0.1), rgba(218, 4, 128, 0.05)); border-radius: 12px; text-align: center; border: 2px solid rgba(218, 4, 128, 0.3);">
-                <div style="font-size: 14px; color: #6b7280; margin-bottom: 10px;">
-                    <?php echo esc_html($atts['label']); ?>
-                </div>
-                <div style="font-size: 48px; font-weight: 800; color: #da0480;">
-                    <?php if ($atts['show_icon'] === 'yes'): ?>
-                        🪙
-                    <?php endif; ?>
-                    <?php echo esc_html($formatted_coins); ?>
-                </div>
-            </div>
-            <?php
-            break;
-            
-        default:
-            ?>
-            <span class="coins-display" style="display: inline-flex; align-items: center; gap: 8px; font-size: 16px; color: #1f2937;">
-                <span style="color: #6b7280;"><?php echo esc_html($atts['label']); ?></span>
-                <strong style="color: #da0480; font-weight: 700;">
-                    <?php if ($atts['show_icon'] === 'yes'): ?>
-                        🪙
-                    <?php endif; ?>
-                    <?php echo esc_html($formatted_coins); ?>
-                </strong>
-            </span>
-            <?php
-    }
-    
-    return ob_get_clean();
-}
-add_shortcode('user_coins', 'coins_shortcode_display');
+add_action('woocommerce_single_product_summary', 'coins_show_product_coin_price', 25);
 
 /**
  * Widget de coins en sidebar
  */
-function coins_sidebar_widget() {
-    if (!is_user_logged_in()) {
-        return;
-    }
-    
-    $coins_manager = Coins_Manager::get_instance();
-    $user_id = get_current_user_id();
-    $user_coins = $coins_manager->get_coins($user_id);
-    $stats = $coins_manager->get_stats($user_id);
-    
-    ?>
-    <div class="widget coins-widget" style="padding: 20px; background: linear-gradient(135deg, rgba(218, 4, 128, 0.1), rgba(218, 4, 128, 0.05)); border-radius: 12px; margin-bottom: 30px; border: 2px solid rgba(218, 4, 128, 0.2);">
-        <h3 class="widget-title" style="margin: 0 0 20px 0; color: #da0480; font-size: 18px; font-weight: 700;">
-            🪙 Mis Coins
-        </h3>
-        
-        <div class="coins-balance" style="text-align: center; padding: 20px; background: white; border-radius: 10px; margin-bottom: 15px;">
-            <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">Saldo actual</div>
-            <div style="font-size: 36px; font-weight: 800; color: #da0480;">
-                <?php echo $coins_manager->format_coins($user_coins); ?>
-            </div>
-        </div>
-        
-        <div class="coins-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
-            <div style="padding: 10px; background: white; border-radius: 8px; text-align: center;">
-                <div style="color: #6b7280;">Ganado</div>
-                <div style="font-weight: 700; color: #10b981;">
-                    +<?php echo $coins_manager->format_coins($stats['total_ganado']); ?>
-                </div>
-            </div>
-            <div style="padding: 10px; background: white; border-radius: 8px; text-align: center;">
-                <div style="color: #6b7280;">Gastado</div>
-                <div style="font-weight: 700; color: #ef4444;">
-                    -<?php echo $coins_manager->format_coins($stats['total_gastado']); ?>
-                </div>
-            </div>
-        </div>
-        
-        <div style="margin-top: 15px; text-align: center;">
-            <a href="<?php echo esc_url(site_url('/gana-coins')); ?>" style="display: inline-block; padding: 10px 20px; background: linear-gradient(135deg, #da0480, #b00368); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; transition: all 0.3s;">
-                ✨ Cómo ganar coins
-            </a>
-        </div>
-    </div>
-    <?php
+function coins_register_widget() {
+    register_sidebar(array(
+        'name' => 'Coins Widget',
+        'id' => 'coins-widget',
+        'before_widget' => '<div class="coins-widget">',
+        'after_widget' => '</div>',
+        'before_title' => '<h3>',
+        'after_title' => '</h3>'
+    ));
 }
-add_action('woocommerce_sidebar', 'coins_sidebar_widget', 5);
+add_action('widgets_init', 'coins_register_widget');
 
 /**
- * Enqueue scripts para display
+ * CSS para displays de coins
  */
-function coins_enqueue_display_scripts() {
-    if (!is_user_logged_in()) {
-        return;
-    }
-    
-    wp_add_inline_style('woocommerce-general', '
-        .coins-badge:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 16px rgba(218, 4, 128, 0.4);
+function coins_enqueue_display_styles() {
+    ?>
+    <style>
+        /* Responsive para displays de coins */
+        @media (max-width: 768px) {
+            .coins-balance-detailed > div {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .product-coin-price {
+                padding: 15px !important;
+            }
+            
+            .product-coin-price > div:first-child {
+                flex-direction: column;
+                text-align: center;
+            }
         }
         
-        .coins-display-large {
-            animation: coinsPulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes coinsPulse {
+        /* Animación de coins */
+        @keyframes coins-pulse {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
+            50% { transform: scale(1.05); }
         }
-    ');
+        
+        .coins-balance-minimal:hover,
+        .coins-balance-default:hover {
+            animation: coins-pulse 0.6s ease-in-out;
+        }
+    </style>
+    <?php
 }
-add_action('wp_enqueue_scripts', 'coins_enqueue_display_scripts');
+add_action('wp_head', 'coins_enqueue_display_styles');
 ?>
