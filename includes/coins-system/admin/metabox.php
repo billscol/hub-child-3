@@ -1,6 +1,10 @@
 <?php
 /**
  * Metabox de Coins en Productos
+ * Permite configurar el costo en coins de un producto
+ * 
+ * @package CoinsSystem
+ * @subpackage Admin
  */
 
 // Evitar acceso directo
@@ -9,88 +13,184 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Agregar metabox de coins
+ * Agregar metabox de coins en productos
  */
-function add_coins_metabox() {
+function coins_add_product_metabox() {
     add_meta_box(
-        'product_coins',
-        '🪙 Configuración de Coins',
-        'render_coins_metabox',
+        'coins_product_metabox',
+        '🪙 Coins para Canje',
+        'coins_render_product_metabox',
         'product',
         'side',
-        'default'
+        'high'
     );
 }
-add_action('add_meta_boxes', 'add_coins_metabox');
+add_action('add_meta_boxes', 'coins_add_product_metabox');
 
 /**
  * Renderizar metabox
  */
-function render_coins_metabox($post) {
-    wp_nonce_field('coins_metabox', 'coins_metabox_nonce');
+function coins_render_product_metabox($post) {
+    wp_nonce_field('coins_save_product_meta', 'coins_product_nonce');
     
-    $coins_requeridos = get_post_meta($post->ID, '_coins_requeridos', true);
-    $es_canjeable = !empty($coins_requeridos);
+    $coins_manager = Coins_Manager::get_instance();
+    $costo_coins = $coins_manager->get_costo_coins_producto($post->ID);
     
     ?>
-    <div style="padding: 10px;">
-        <p>
-            <label>
-                <input type="checkbox" 
-                       name="_producto_canjeable_coins" 
-                       value="1" 
-                       <?php checked($es_canjeable); ?>
-                       onchange="document.getElementById('coins-config').style.display = this.checked ? 'block' : 'none';">
-                <strong>Producto canjeable con coins</strong>
+    <style>
+        .coins-metabox-container {
+            padding: 10px 0;
+        }
+        .coins-field-group {
+            margin-bottom: 20px;
+        }
+        .coins-field-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1e1e1e;
+            font-size: 14px;
+        }
+        .coins-field-group input[type="number"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #da0480;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #da0480;
+        }
+        .coins-field-group input[type="number"]:focus {
+            outline: none;
+            border-color: #b00368;
+            box-shadow: 0 0 0 3px rgba(218, 4, 128, 0.1);
+        }
+        .coins-help-text {
+            font-size: 13px;
+            color: #757575;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+        .coins-info-box {
+            background: rgba(218, 4, 128, 0.08);
+            border-left: 4px solid #da0480;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 4px;
+        }
+        .coins-info-box p {
+            margin: 0;
+            font-size: 13px;
+            color: #1e1e1e;
+            line-height: 1.6;
+        }
+        .coins-info-box strong {
+            color: #da0480;
+        }
+        .coins-preview {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .coins-preview-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: #da0480;
+        }
+    </style>
+    
+    <div class="coins-metabox-container">
+        <div class="coins-field-group">
+            <label for="costo_coins">
+                🪙 Costo en Coins:
             </label>
-        </p>
-        
-        <div id="coins-config" style="display: <?php echo $es_canjeable ? 'block' : 'none'; ?>; margin-top: 15px; padding: 15px; background: #f9f9f9; border-radius: 8px;">
-            <p>
-                <label><strong>Coins requeridos:</strong></label><br>
-                <input type="number" 
-                       name="_coins_requeridos" 
-                       value="<?php echo esc_attr($coins_requeridos); ?>" 
-                       min="1" 
-                       step="1"
-                       placeholder="Ej: 10"
-                       style="width: 100%; padding: 8px; margin-top: 5px;">
+            <input 
+                type="number" 
+                id="costo_coins" 
+                name="costo_coins" 
+                value="<?php echo esc_attr($costo_coins); ?>" 
+                min="0" 
+                step="1"
+                placeholder="0"
+            />
+            <p class="coins-help-text">
+                💡 <strong>Tip:</strong> Si estableces un valor mayor a 0, los usuarios podrán canjear este producto con sus coins.
             </p>
-            
-            <p style="color: #666; font-size: 12px; margin: 10px 0 0 0;">
-                💡 <strong>Nota:</strong> Los usuarios podrán canjear este curso usando sus coins en lugar de pagar.
+        </div>
+        
+        <?php if ($costo_coins > 0): ?>
+        <div class="coins-preview">
+            <div>Este producto cuesta:</div>
+            <div class="coins-preview-amount"><?php echo $coins_manager->format_coins($costo_coins); ?> 🪙</div>
+        </div>
+        <?php endif; ?>
+        
+        <div class="coins-info-box">
+            <p>
+                <strong>ℹ️ Nota:</strong> Los productos con costo en coins deben tener precio <strong>$0</strong> para que funcione el sistema de canje.
             </p>
         </div>
     </div>
+    
+    <script>
+    jQuery(document).ready(function($) {
+        // Preview dinámico
+        $('#costo_coins').on('input', function() {
+            var value = $(this).val();
+            var preview = $('.coins-preview');
+            var previewAmount = $('.coins-preview-amount');
+            
+            if (value > 0) {
+                if (preview.length === 0) {
+                    $('.coins-field-group').after('<div class="coins-preview"><div>Este producto cuesta:</div><div class="coins-preview-amount"></div></div>');
+                    preview = $('.coins-preview');
+                    previewAmount = $('.coins-preview-amount');
+                }
+                
+                var formatted = parseInt(value).toLocaleString('es-ES');
+                previewAmount.text(formatted + ' 🪙');
+                preview.show();
+            } else {
+                preview.hide();
+            }
+        });
+    });
+    </script>
     <?php
 }
 
 /**
  * Guardar metabox
  */
-function save_coins_metabox($post_id) {
-    if (!isset($_POST['coins_metabox_nonce']) || 
-        !wp_verify_nonce($_POST['coins_metabox_nonce'], 'coins_metabox')) {
+function coins_save_product_metabox($post_id) {
+    // Verificar nonce
+    if (!isset($_POST['coins_product_nonce']) || !wp_verify_nonce($_POST['coins_product_nonce'], 'coins_save_product_meta')) {
         return;
     }
     
+    // Verificar autosave
     if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
         return;
     }
     
+    // Verificar permisos
     if (!current_user_can('edit_post', $post_id)) {
         return;
     }
     
-    // Guardar configuración
-    if (isset($_POST['_producto_canjeable_coins']) && $_POST['_producto_canjeable_coins'] == '1') {
-        $coins = isset($_POST['_coins_requeridos']) ? intval($_POST['_coins_requeridos']) : 0;
-        if ($coins > 0) {
-            update_post_meta($post_id, '_coins_requeridos', $coins);
+    // Guardar costo en coins
+    if (isset($_POST['costo_coins'])) {
+        $costo = floatval($_POST['costo_coins']);
+        
+        if ($costo < 0) {
+            $costo = 0;
         }
-    } else {
-        delete_post_meta($post_id, '_coins_requeridos');
+        
+        $coins_manager = Coins_Manager::get_instance();
+        $coins_manager->set_costo_coins_producto($post_id, $costo);
     }
 }
-add_action('save_post_product', 'save_coins_metabox');
+add_action('save_post_product', 'coins_save_product_metabox');
 ?>
