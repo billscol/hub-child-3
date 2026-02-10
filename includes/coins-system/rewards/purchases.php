@@ -1,7 +1,10 @@
 <?php
 /**
  * Recompensas por Compras
- * Otorga coins cuando un usuario compra un curso premium
+ * Otorga coins cuando un usuario completa una compra
+ * 
+ * @package CoinsSystem
+ * @subpackage Rewards
  */
 
 // Evitar acceso directo
@@ -10,17 +13,154 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Otorgar coins al completar una compra
+ * Otorgar coins cuando se completa un pedido
  */
-function otorgar_coins_por_compra($order_id) {
+function coins_reward_on_order_completed($order_id) {
     $order = wc_get_order($order_id);
     
     if (!$order) {
         return;
     }
     
-    // Verificar que no se hayan otorgado coins ya
-    if ($order->get_meta('_coins_otorgados')) {
+    $user_id = $order->get_user_id();
+    
+    // Solo si el usuario está registrado
+    if (!$user_id) {
+        return;
+    }
+    
+    // Verificar si ya se otorgaron coins por este pedido
+    $coins_otorgados = get_post_meta($order_id, '_coins_otorgados', true);
+    if ($coins_otorgados) {
+        return; // Ya se otorgaron coins
+    }
+    
+    // Verificar que el pedido no haya sido pagado con coins
+    $payment_method = $order->get_payment_method();
+    if ($payment_method === 'coins') {
+        return; // No dar coins por canjes con coins
+    }
+    
+    $coins_manager = Coins_Manager::get_instance();
+    $total_coins = 0;
+    
+    // Contar productos premium (no gratuitos)
+    foreach ($order->get_items() as $item) {
+        $product = $item->get_product();
+        $quantity = $item->get_quantity();
+        
+        // Solo dar coins por productos de pago
+        if ($product && $product->get_price() > 0) {
+            // 1 coin por cada producto premium
+            $coins_por_producto = 1;
+            $total_coins += $coins_por_producto * $quantity;
+        }
+    }
+    
+    // Si hay coins para otorgar
+    if ($total_coins > 0) {
+        // Otorgar coins
+        $coins_manager->add_coins(
+            $user_id,
+            $total_coins,
+            'compra',
+            'Recompensa por compra - Pedido #' . $order_id,
+            $order_id
+        );
+        
+        // Marcar que ya se otorgaron coins
+        update_post_meta($order_id, '_coins_otorgados', $total_coins);
+        
+        // Agregar nota al pedido
+        $order->add_order_note(
+            sprintf(
+                'Se otorgaron %s coins al usuario por esta compra.',
+                $coins_manager->format_coins($total_coins)
+            )
+        );
+        
+        // Enviar notificación al usuario
+        coins_send_reward_notification($user_id, $total_coins, 'compra', $order_id);
+    }
+}
+add_action('woocommerce_order_status_completed', 'coins_reward_on_order_completed');
+
+/**
+ * Enviar notificación de coins recibidos
+ */
+function coins_send_reward_notification($user_id, $coins, $tipo, $order_id = null) {
+    $user = get_userdata($user_id);
+    
+    if (!$user) {
+        return;
+    }
+    
+    $coins_manager = Coins_Manager::get_instance();
+    $saldo_actual = $coins_manager->get_coins($user_id);
+    
+    $subject = '🪙 ¡Has ganado ' . $coins_manager->format_coins($coins) . ' coins!';
+    
+    $message = '
+    <html>
+    <head>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #da0480, #b00368); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .coin-box { background: #fff; border: 2px solid #da0480; border-radius: 10px; padding: 20px; text-align: center; margin: 20px 0; }
+            .coin-amount { font-size: 36px; font-weight: bold; color: #da0480; }
+            .balance { color: #666; font-size: 14px; margin-top: 10px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1 style="margin: 0;">🎉 ¡Felicitaciones!</h1>
+            </div>
+            <div class="content">
+                <p>Hola <strong>' . esc_html($user->display_name) . '</strong>,</p>
+                
+                <p>¡Excelente noticia! Has ganado coins por tu reciente compra.</p>
+                
+                <div class="coin-box">
+                    <div class="coin-amount">+' . $coins_manager->format_coins($coins) . ' 🪙</div>
+                    <div class="balance">Tu saldo actual: ' . $coins_manager->format_coins($saldo_actual) . ' coins</div>
+                </div>
+                
+                <p>Puedes usar tus coins para canjear cursos gratuitos en nuestra plataforma.</p>
+                
+                <p><strong>¿Cómo ganar más coins?</strong></p>
+                <ul>
+                    <li>🛒 1 coin por cada curso premium que compras</li>
+                    <li>⭐ 1 coin por cada reseña verificada</li>
+                </ul>
+                
+                <p style="margin-top: 30px; color: #666; font-size: 13px;">
+                    Saludos,<br>
+                    El equipo de ' . get_bloginfo('name') . '
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    ';
+    
+    $headers = array(
+        'Content-Type: text/html; charset=UTF-8',
+        'From: ' . get_bloginfo('name') . ' <' . get_option('admin_email') . '>'
+    );
+    
+    wp_mail($user->user_email, $subject, $message, $headers);
+}
+
+/**
+ * Revertir coins si se cancela un pedido
+ */
+function coins_revert_on_order_cancelled($order_id) {
+    $order = wc_get_order($order_id);
+    
+    if (!$order) {
         return;
     }
     
@@ -30,99 +170,33 @@ function otorgar_coins_por_compra($order_id) {
         return;
     }
     
-    // Calcular coins a otorgar
-    $coins_a_otorgar = 0;
+    // Verificar si se otorgaron coins
+    $coins_otorgados = get_post_meta($order_id, '_coins_otorgados', true);
     
-    foreach ($order->get_items() as $item) {
-        $product = $item->get_product();
+    if ($coins_otorgados && $coins_otorgados > 0) {
+        $coins_manager = Coins_Manager::get_instance();
         
-        if (!$product) {
-            continue;
-        }
-        
-        // Solo otorgar coins por productos premium (no gratuitos)
-        if ($product->get_price() > 0) {
-            // Otorgar 1 coin por cada compra de curso premium
-            $coins_por_producto = apply_filters('coins_por_compra_producto', 1, $product, $order);
-            $coins_a_otorgar += $coins_por_producto;
-        }
-    }
-    
-    if ($coins_a_otorgar > 0) {
-        coins_manager()->add_coins(
+        // Restar los coins que se habían otorgado
+        $coins_manager->subtract_coins(
             $user_id,
-            $coins_a_otorgar,
-            'Recompensa por compra - Pedido #' . $order_id,
+            $coins_otorgados,
+            'reversion',
+            'Reversión por cancelación del pedido #' . $order_id,
             $order_id
         );
         
-        // Marcar que ya se otorgaron coins
-        $order->update_meta_data('_coins_otorgados', $coins_a_otorgar);
-        $order->save();
+        // Marcar como revertido
+        update_post_meta($order_id, '_coins_revertidos', true);
         
-        // Agregar nota al pedido
         $order->add_order_note(
             sprintf(
-                '🪙 Se otorgaron %d coins al cliente por esta compra.',
-                $coins_a_otorgar
+                'Se revirtieron %s coins del usuario por cancelación.',
+                $coins_manager->format_coins($coins_otorgados)
             )
         );
     }
 }
-
-// Otorgar coins cuando el pedido se completa
-add_action('woocommerce_order_status_completed', 'otorgar_coins_por_compra');
-
-// También otorgar cuando se procesa (para productos digitales)
-add_action('woocommerce_order_status_processing', 'otorgar_coins_por_compra');
-
-/**
- * Mostrar coins ganados en la página de agradecimiento
- */
-function mostrar_coins_ganados_thank_you($order_id) {
-    $order = wc_get_order($order_id);
-    
-    if (!$order) {
-        return;
-    }
-    
-    $coins_otorgados = $order->get_meta('_coins_otorgados');
-    
-    if ($coins_otorgados && $coins_otorgados > 0) {
-        ?>
-        <div class="coins-earned-notice" style="background: linear-gradient(135deg, rgba(218, 4, 128, 0.1), rgba(218, 4, 128, 0.05)); border: 2px solid rgba(218, 4, 128, 0.3); border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
-            <div style="font-size: 48px; margin-bottom: 10px;">🎉</div>
-            <h3 style="color: #da0480; margin: 0 0 10px 0;">¡Felicidades!</h3>
-            <p style="margin: 0; font-size: 16px;">
-                Has ganado <strong style="color: #da0480; font-size: 24px;"><?php echo $coins_otorgados; ?> coins</strong> con esta compra.
-            </p>
-            <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">
-                Usa tus coins para canjear más cursos gratis.
-            </p>
-        </div>
-        <?php
-    }
-}
-add_action('woocommerce_thankyou', 'mostrar_coins_ganados_thank_you', 20);
-
-/**
- * Mostrar coins potenciales en la página del producto
- */
-function mostrar_coins_potenciales_producto() {
-    global $product;
-    
-    if (!$product || $product->get_price() <= 0) {
-        return;
-    }
-    
-    $coins_potenciales = apply_filters('coins_por_compra_producto', 1, $product, null);
-    
-    ?>
-    <div class="product-coins-badge" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(218, 4, 128, 0.1); color: #da0480; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; margin: 10px 0;">
-        <span>🪙</span>
-        <span>Gana <?php echo $coins_potenciales; ?> coin<?php echo $coins_potenciales > 1 ? 's' : ''; ?> con esta compra</span>
-    </div>
-    <?php
-}
-add_action('woocommerce_single_product_summary', 'mostrar_coins_potenciales_producto', 25);
+add_action('woocommerce_order_status_cancelled', 'coins_revert_on_order_cancelled');
+add_action('woocommerce_order_status_refunded', 'coins_revert_on_order_cancelled');
+add_action('woocommerce_order_status_failed', 'coins_revert_on_order_cancelled');
 ?>
