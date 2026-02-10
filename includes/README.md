@@ -17,6 +17,8 @@ includes/
 │   ├── course-curriculum/      # [course_curriculum] - Currículum
 │   ├── resenas-producto/       # [resenas_producto] - Reseñas
 │   ├── video-producto/         # [video_producto] - Videos
+│   ├── boton-reporte/          # [boton_reporte] - Reportes
+│   ├── dual-buy-buttons/       # [dual_buy_buttons] - Botones compra
 │   ├── filtros-cursos.php      # Filtros de cursos (legacy)
 │   ├── grid-cursos.php         # Grid de cursos (legacy)
 │   └── filtros-cursos-js.php   # JavaScript filtros (legacy)
@@ -60,6 +62,43 @@ includes/
 - `metabox.php` - Metabox para agregar videos
 - `shortcode.php` - Visualización del video
 
+### [boton_reporte]
+**Ubicación:** `includes/shortcodes/boton-reporte/`
+**Descripción:** Sistema de reportes de cursos
+**Archivos:**
+- `index.php` - Loader principal
+- `post-type.php` - Custom Post Type
+- `admin-columns.php` - Columnas personalizadas
+- `metabox.php` - Metabox de edición
+- `email-notification.php` - Notificaciones por email
+- `shortcode.php` - Botón de reporte
+
+### [dual_buy_buttons]
+**Ubicación:** `includes/shortcodes/dual-buy-buttons/`
+**Descripción:** Botones duales de compra (Comprar Ahora + Ver Carrito)
+**Archivos:**
+- `index.php` - Loader principal
+- `shortcode.php` - Lógica de los botones
+- `styles.php` - Estilos CSS
+- `ajax-handler.php` - Manejador AJAX
+
+## 📚 Sistemas Principales
+
+### Sistema de Coins
+**Ubicación:** `includes/coins-system/`
+**Descripción:** Sistema completo de monedas virtuales
+**Pendiente:** Organizar en módulos separados
+
+### Sistema de Cursos
+**Ubicación:** `includes/course-system/`
+**Descripción:** Gestión de cursos y contenido educativo
+**Pendiente:** Organizar en módulos separados
+
+### Personalización de Checkout
+**Ubicación:** `includes/checkout-customization/`
+**Descripción:** Customizaciones del proceso de compra
+**Pendiente:** Organizar en módulos separados
+
 ## 🔧 Cómo Agregar un Nuevo Shortcode
 
 1. Crear una nueva carpeta en `includes/shortcodes/nombre-shortcode/`
@@ -76,8 +115,20 @@ includes/
 - Cada shortcode debe ser autocontenido en su carpeta
 - Los archivos legacy (filtros-cursos, grid-cursos) se mantendrán por compatibilidad
 
+## 🎯 Beneficios de esta Organización
+✅ **Código limpio**: functions.php reducido de 5,000 a ~150 líneas
+✅ **Fácil mantenimiento**: Cada funcionalidad en su propia carpeta
+✅ **Escalable**: Fácil agregar nuevas funcionalidades
+✅ **Documentado**: Estructura clara y bien documentada
+✅ **Sin cambios visuales**: Todo el diseño permanece intacto
+
 ## 👥 Mantenimiento
 
 **Última Actualización:** Febrero 2026
 **Versión:** 2.0.0
-**Estado:** Reorganización completa finalizada
+**Estado:** Reorganización de shortcodes completada
+
+### Pendiente
+- [ ] Organizar sistema de coins en módulos
+- [ ] Organizar sistema de cursos en módulos
+- [ ] Organizar checkout-customization en módulos
