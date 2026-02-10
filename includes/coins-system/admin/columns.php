@@ -1,7 +1,7 @@
 <?php
 /**
  * Columnas Personalizadas en Admin
- * Agrega columnas de coins en listados de productos y usuarios
+ * Agrega columnas de coins en listados de admin
  * 
  * @package CoinsSystem
  * @subpackage Admin
@@ -13,13 +13,7 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * ==================================================
- * COLUMNAS EN PRODUCTOS
- * ==================================================
- */
-
-/**
- * Agregar columna de coins en listado de productos
+ * Agregar columna de coins en lista de productos
  */
 function coins_add_product_column($columns) {
     $new_columns = array();
@@ -27,7 +21,7 @@ function coins_add_product_column($columns) {
     foreach ($columns as $key => $value) {
         $new_columns[$key] = $value;
         
-        // Insertar después de la columna de precio
+        // Añadir columna de coins después del precio
         if ($key === 'price') {
             $new_columns['coins_cost'] = '🪙 Coins';
         }
@@ -38,27 +32,26 @@ function coins_add_product_column($columns) {
 add_filter('manage_edit-product_columns', 'coins_add_product_column');
 
 /**
- * Mostrar contenido de columna de coins
+ * Mostrar contenido de la columna de coins
  */
 function coins_show_product_column_content($column, $post_id) {
     if ($column === 'coins_cost') {
         $coins_manager = Coins_Manager::get_instance();
-        $costo = $coins_manager->get_costo_coins_producto($post_id);
+        $costo_coins = $coins_manager->get_costo_coins_producto($post_id);
         
-        if ($costo > 0) {
-            echo '<span style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; background: rgba(218, 4, 128, 0.1); border-radius: 20px; color: #da0480; font-weight: 600; font-size: 13px;">';
-            echo $coins_manager->format_coins($costo);
-            echo ' 🪙';
+        if ($costo_coins > 0) {
+            echo '<span style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; background: linear-gradient(135deg, #da0480 0%, #b00368 100%); color: #fff; border-radius: 20px; font-size: 12px; font-weight: 600;">';
+            echo '<span>🪙</span> ' . esc_html($coins_manager->format_coins($costo_coins));
             echo '</span>';
         } else {
-            echo '<span style="color: #999; font-size: 13px;">—</span>';
+            echo '<span style="color: #9ca3af; font-size: 12px;">—</span>';
         }
     }
 }
 add_action('manage_product_posts_custom_column', 'coins_show_product_column_content', 10, 2);
 
 /**
- * Hacer columna ordenable
+ * Hacer la columna sorteable
  */
 function coins_make_product_column_sortable($columns) {
     $columns['coins_cost'] = 'coins_cost';
@@ -67,16 +60,14 @@ function coins_make_product_column_sortable($columns) {
 add_filter('manage_edit-product_sortable_columns', 'coins_make_product_column_sortable');
 
 /**
- * Ordenar por columna de coins
+ * Query para ordenar por coins
  */
 function coins_product_column_orderby($query) {
-    if (!is_admin()) {
+    if (!is_admin() || !$query->is_main_query()) {
         return;
     }
     
-    $orderby = $query->get('orderby');
-    
-    if ($orderby === 'coins_cost') {
+    if ($query->get('orderby') === 'coins_cost') {
         $query->set('meta_key', '_costo_coins');
         $query->set('orderby', 'meta_value_num');
     }
@@ -84,13 +75,7 @@ function coins_product_column_orderby($query) {
 add_action('pre_get_posts', 'coins_product_column_orderby');
 
 /**
- * ==================================================
- * COLUMNAS EN USUARIOS
- * ==================================================
- */
-
-/**
- * Agregar columna de coins en listado de usuarios
+ * Agregar columna de coins en lista de usuarios
  */
 function coins_add_user_column($columns) {
     $columns['user_coins'] = '🪙 Coins';
@@ -99,16 +84,20 @@ function coins_add_user_column($columns) {
 add_filter('manage_users_columns', 'coins_add_user_column');
 
 /**
- * Mostrar contenido de columna de coins de usuario
+ * Mostrar contenido de columna de coins en usuarios
  */
 function coins_show_user_column_content($value, $column_name, $user_id) {
     if ($column_name === 'user_coins') {
         $coins_manager = Coins_Manager::get_instance();
-        $saldo = $coins_manager->get_coins($user_id);
+        $user_coins = coins_get_balance($user_id);
         
-        return '<span style="display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; background: linear-gradient(135deg, rgba(218, 4, 128, 0.1), rgba(218, 4, 128, 0.05)); border-radius: 20px; color: #da0480; font-weight: 700; font-size: 14px; border: 1px solid rgba(218, 4, 128, 0.2);">' . 
-               $coins_manager->format_coins($saldo) . 
-               ' 🪙</span>';
+        if ($user_coins > 0) {
+            return '<span style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; background: linear-gradient(135deg, #da0480 0%, #b00368 100%); color: #fff; border-radius: 20px; font-size: 12px; font-weight: 600;">' . 
+                   '<span>🪙</span> ' . esc_html($coins_manager->format_coins($user_coins)) . 
+                   '</span>';
+        } else {
+            return '<span style="color: #9ca3af; font-size: 12px;">0</span>';
+        }
     }
     
     return $value;
@@ -116,7 +105,7 @@ function coins_show_user_column_content($value, $column_name, $user_id) {
 add_filter('manage_users_custom_column', 'coins_show_user_column_content', 10, 3);
 
 /**
- * Hacer columna de usuarios ordenable
+ * Hacer columna de usuarios sorteable
  */
 function coins_make_user_column_sortable($columns) {
     $columns['user_coins'] = 'user_coins';
@@ -125,132 +114,129 @@ function coins_make_user_column_sortable($columns) {
 add_filter('manage_users_sortable_columns', 'coins_make_user_column_sortable');
 
 /**
- * Ordenar por columna de coins de usuario
+ * Query para ordenar usuarios por coins
  */
 function coins_user_column_orderby($query) {
     if (!is_admin()) {
         return;
     }
     
-    $screen = get_current_screen();
-    
-    if ($screen && $screen->id === 'users') {
-        $orderby = isset($_GET['orderby']) ? $_GET['orderby'] : '';
-        
-        if ($orderby === 'user_coins') {
-            $query->set('meta_key', '_user_coins');
-            $query->set('orderby', 'meta_value_num');
-        }
+    if (isset($_GET['orderby']) && $_GET['orderby'] === 'user_coins') {
+        $query->set('meta_key', '_user_coins');
+        $query->set('orderby', 'meta_value_num');
     }
 }
 add_action('pre_get_users', 'coins_user_column_orderby');
 
 /**
- * ==================================================
- * FILTROS EN ADMIN
- * ==================================================
+ * Agregar columna de coins en pedidos
  */
+function coins_add_order_column($columns) {
+    $new_columns = array();
+    
+    foreach ($columns as $key => $value) {
+        $new_columns[$key] = $value;
+        
+        // Añadir después del total
+        if ($key === 'order_total') {
+            $new_columns['coins_info'] = '🪙 Coins';
+        }
+    }
+    
+    return $new_columns;
+}
+add_filter('manage_edit-shop_order_columns', 'coins_add_order_column');
 
 /**
- * Agregar filtro de productos por coins
+ * Mostrar info de coins en pedidos
+ */
+function coins_show_order_column_content($column, $post_id) {
+    if ($column === 'coins_info') {
+        $order = wc_get_order($post_id);
+        
+        if (!$order) {
+            echo '<span style="color: #9ca3af;">—</span>';
+            return;
+        }
+        
+        // Ver si fue pago con coins
+        if ($order->get_payment_method() === 'coins') {
+            echo '<span style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; background: #da0480; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 600;">';
+            echo '🪙 Canje';
+            echo '</span>';
+        }
+        
+        // Ver si se otorgaron coins
+        $coins_rewarded = get_post_meta($post_id, '_coins_rewarded', true);
+        $coins_amount = get_post_meta($post_id, '_coins_amount', true);
+        
+        if ($coins_rewarded === 'yes' && $coins_amount) {
+            $coins_manager = Coins_Manager::get_instance();
+            echo '<br><span style="display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; padding: 4px 8px; background: #10b981; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 600;">';
+            echo '+' . esc_html($coins_manager->format_coins($coins_amount));
+            echo '</span>';
+        }
+        
+        if ($column === 'coins_info' && !$order->get_payment_method() === 'coins' && $coins_rewarded !== 'yes') {
+            echo '<span style="color: #9ca3af; font-size: 12px;">—</span>';
+        }
+    }
+}
+add_action('manage_shop_order_posts_custom_column', 'coins_show_order_column_content', 10, 2);
+
+/**
+ * Filtro rápido para productos canjeables
  */
 function coins_add_product_filter() {
     global $typenow;
     
     if ($typenow === 'product') {
-        $selected = isset($_GET['coins_filter']) ? $_GET['coins_filter'] : '';
-        
-        echo '<select name="coins_filter" style="margin-left: 10px;">';
-        echo '<option value="">Todos los productos</option>';
-        echo '<option value="with_coins"' . selected($selected, 'with_coins', false) . '>Con costo en coins</option>';
-        echo '<option value="without_coins"' . selected($selected, 'without_coins', false) . '>Sin costo en coins</option>';
-        echo '</select>';
+        $current_filter = isset($_GET['coins_filter']) ? $_GET['coins_filter'] : 'all';
+        ?>
+        <select name="coins_filter">
+            <option value="all" <?php selected($current_filter, 'all'); ?>>Todos los productos</option>
+            <option value="redeemable" <?php selected($current_filter, 'redeemable'); ?>>Canjeables con coins</option>
+            <option value="not_redeemable" <?php selected($current_filter, 'not_redeemable'); ?>>No canjeables</option>
+        </select>
+        <?php
     }
 }
 add_action('restrict_manage_posts', 'coins_add_product_filter');
 
 /**
- * Aplicar filtro de productos por coins
+ * Aplicar filtro de productos canjeables
  */
 function coins_apply_product_filter($query) {
-    if (!is_admin() || !$query->is_main_query()) {
-        return;
-    }
+    global $pagenow, $typenow;
     
-    if (isset($_GET['coins_filter'])) {
+    if ($pagenow === 'edit.php' && $typenow === 'product' && isset($_GET['coins_filter'])) {
         $filter = $_GET['coins_filter'];
         
-        if ($filter === 'with_coins') {
-            $meta_query = array(
+        if ($filter === 'redeemable') {
+            $query->set('meta_query', array(
                 array(
                     'key' => '_costo_coins',
-                    'value' => '0',
+                    'value' => 0,
                     'compare' => '>',
                     'type' => 'NUMERIC'
                 )
-            );
-            $query->set('meta_query', $meta_query);
-        } elseif ($filter === 'without_coins') {
-            $meta_query = array(
+            ));
+        } elseif ($filter === 'not_redeemable') {
+            $query->set('meta_query', array(
                 'relation' => 'OR',
                 array(
                     'key' => '_costo_coins',
-                    'value' => '0',
-                    'compare' => '=',
-                    'type' => 'NUMERIC'
+                    'compare' => 'NOT EXISTS'
                 ),
                 array(
                     'key' => '_costo_coins',
-                    'compare' => 'NOT EXISTS'
+                    'value' => 0,
+                    'compare' => '=',
+                    'type' => 'NUMERIC'
                 )
-            );
-            $query->set('meta_query', $meta_query);
+            ));
         }
     }
 }
 add_action('pre_get_posts', 'coins_apply_product_filter');
-
-/**
- * ==================================================
- * BULK ACTIONS
- * ==================================================
- */
-
-/**
- * Agregar acción masiva para establecer coins
- */
-function coins_add_bulk_action($actions) {
-    $actions['set_coins'] = 'Establecer costo en coins';
-    return $actions;
-}
-add_filter('bulk_actions-edit-product', 'coins_add_bulk_action');
-
-/**
- * Manejar acción masiva
- */
-function coins_handle_bulk_action($redirect_to, $action, $post_ids) {
-    if ($action !== 'set_coins') {
-        return $redirect_to;
-    }
-    
-    // Aquí se podría agregar un formulario modal para establecer el costo
-    // Por ahora solo redireccionamos con un mensaje
-    
-    $redirect_to = add_query_arg('coins_bulk', count($post_ids), $redirect_to);
-    return $redirect_to;
-}
-add_filter('handle_bulk_actions-edit-product', 'coins_handle_bulk_action', 10, 3);
-
-/**
- * Mostrar mensaje después de acción masiva
- */
-function coins_bulk_action_notice() {
-    if (!empty($_GET['coins_bulk'])) {
-        $count = intval($_GET['coins_bulk']);
-        echo '<div class="notice notice-success is-dismissible">';
-        echo '<p>' . sprintf('Se procesaron %d productos.', $count) . '</p>';
-        echo '</div>';
-    }
-}
-add_action('admin_notices', 'coins_bulk_action_notice');
 ?>

@@ -1,7 +1,7 @@
 <?php
 /**
  * Metabox de Coins en Productos
- * Permite configurar el costo en coins de un producto
+ * Permite establecer el costo en coins de un producto
  * 
  * @package CoinsSystem
  * @subpackage Admin
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
  */
 function coins_add_product_metabox() {
     add_meta_box(
-        'coins_product_metabox',
+        'coins_product_costo',
         '🪙 Coins para Canje',
         'coins_render_product_metabox',
         'product',
@@ -31,80 +31,74 @@ add_action('add_meta_boxes', 'coins_add_product_metabox');
  * Renderizar metabox
  */
 function coins_render_product_metabox($post) {
-    wp_nonce_field('coins_save_product_meta', 'coins_product_nonce');
+    wp_nonce_field('coins_save_product_costo', 'coins_product_costo_nonce');
     
     $coins_manager = Coins_Manager::get_instance();
     $costo_coins = $coins_manager->get_costo_coins_producto($post->ID);
     
     ?>
     <style>
-        .coins-metabox-container {
+        .coins-metabox {
             padding: 10px 0;
         }
+        
         .coins-field-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
-        .coins-field-group label {
+        
+        .coins-field-label {
             display: block;
-            font-weight: 600;
             margin-bottom: 8px;
-            color: #1e1e1e;
-            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 13px;
         }
-        .coins-field-group input[type="number"] {
+        
+        .coins-input {
             width: 100%;
             padding: 8px 12px;
-            border: 2px solid #da0480;
+            border: 2px solid #e5e7eb;
             border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
-            color: #da0480;
+            font-size: 14px;
+            transition: all 0.3s;
         }
-        .coins-field-group input[type="number"]:focus {
+        
+        .coins-input:focus {
             outline: none;
-            border-color: #b00368;
+            border-color: #da0480;
             box-shadow: 0 0 0 3px rgba(218, 4, 128, 0.1);
         }
+        
         .coins-help-text {
-            font-size: 13px;
-            color: #757575;
             margin-top: 8px;
+            font-size: 12px;
+            color: #6b7280;
             line-height: 1.5;
         }
+        
         .coins-info-box {
+            padding: 12px;
             background: rgba(218, 4, 128, 0.08);
+            border-radius: 8px;
             border-left: 4px solid #da0480;
-            padding: 12px;
             margin-top: 15px;
-            border-radius: 4px;
         }
+        
         .coins-info-box p {
-            margin: 0;
-            font-size: 13px;
-            color: #1e1e1e;
-            line-height: 1.6;
+            margin: 5px 0;
+            font-size: 12px;
+            color: #374151;
         }
+        
         .coins-info-box strong {
-            color: #da0480;
-        }
-        .coins-preview {
-            background: #f9f9f9;
-            padding: 12px;
-            border-radius: 6px;
-            margin-top: 10px;
-            text-align: center;
-        }
-        .coins-preview-amount {
-            font-size: 24px;
-            font-weight: 700;
             color: #da0480;
         }
     </style>
     
-    <div class="coins-metabox-container">
+    <div class="coins-metabox">
         <div class="coins-field-group">
-            <label for="costo_coins">
-                🪙 Costo en Coins:
+            <label class="coins-field-label" for="costo_coins">
+                Costo en Coins
             </label>
             <input 
                 type="number" 
@@ -112,65 +106,49 @@ function coins_render_product_metabox($post) {
                 name="costo_coins" 
                 value="<?php echo esc_attr($costo_coins); ?>" 
                 min="0" 
-                step="1"
+                step="0.5"
+                class="coins-input"
                 placeholder="0"
             />
             <p class="coins-help-text">
-                💡 <strong>Tip:</strong> Si estableces un valor mayor a 0, los usuarios podrán canjear este producto con sus coins.
+                💡 Establece cuántos coins necesita un usuario para canjear este producto.
+                Deja en <strong>0</strong> si no es canjeable con coins.
             </p>
         </div>
         
-        <?php if ($costo_coins > 0): ?>
-        <div class="coins-preview">
-            <div>Este producto cuesta:</div>
-            <div class="coins-preview-amount"><?php echo $coins_manager->format_coins($costo_coins); ?> 🪙</div>
+        <?php if ($costo_coins > 0) : ?>
+        <div class="coins-info-box">
+            <p><strong>✅ Producto canjeable</strong></p>
+            <p>Los usuarios podrán canjear este producto con <strong><?php echo $coins_manager->format_coins($costo_coins); ?> coins</strong>.</p>
+        </div>
+        <?php else : ?>
+        <div class="coins-info-box">
+            <p><strong>⛔ No canjeable</strong></p>
+            <p>Este producto no puede ser canjeado con coins. Solo compra con dinero.</p>
         </div>
         <?php endif; ?>
         
-        <div class="coins-info-box">
-            <p>
-                <strong>ℹ️ Nota:</strong> Los productos con costo en coins deben tener precio <strong>$0</strong> para que funcione el sistema de canje.
-            </p>
+        <div class="coins-info-box" style="margin-top: 15px; background: rgba(59, 130, 246, 0.08); border-left-color: #3b82f6;">
+            <p style="color: #1e40af;"><strong>📊 Cómo ganar coins:</strong></p>
+            <p style="color: #374151; margin-left: 10px;">• 1 coin por curso premium comprado</p>
+            <p style="color: #374151; margin-left: 10px;">• 1 coin por reseña verificada</p>
+            <p style="color: #374151; margin-left: 10px;">• 0.5 coins por compartir en redes</p>
         </div>
     </div>
-    
-    <script>
-    jQuery(document).ready(function($) {
-        // Preview dinámico
-        $('#costo_coins').on('input', function() {
-            var value = $(this).val();
-            var preview = $('.coins-preview');
-            var previewAmount = $('.coins-preview-amount');
-            
-            if (value > 0) {
-                if (preview.length === 0) {
-                    $('.coins-field-group').after('<div class="coins-preview"><div>Este producto cuesta:</div><div class="coins-preview-amount"></div></div>');
-                    preview = $('.coins-preview');
-                    previewAmount = $('.coins-preview-amount');
-                }
-                
-                var formatted = parseInt(value).toLocaleString('es-ES');
-                previewAmount.text(formatted + ' 🪙');
-                preview.show();
-            } else {
-                preview.hide();
-            }
-        });
-    });
-    </script>
     <?php
 }
 
 /**
- * Guardar metabox
+ * Guardar metabox de coins
  */
 function coins_save_product_metabox($post_id) {
     // Verificar nonce
-    if (!isset($_POST['coins_product_nonce']) || !wp_verify_nonce($_POST['coins_product_nonce'], 'coins_save_product_meta')) {
+    if (!isset($_POST['coins_product_costo_nonce']) || 
+        !wp_verify_nonce($_POST['coins_product_costo_nonce'], 'coins_save_product_costo')) {
         return;
     }
     
-    // Verificar autosave
+    // Verificar autoguardado
     if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
         return;
     }
@@ -182,15 +160,41 @@ function coins_save_product_metabox($post_id) {
     
     // Guardar costo en coins
     if (isset($_POST['costo_coins'])) {
-        $costo = floatval($_POST['costo_coins']);
+        $costo_coins = floatval($_POST['costo_coins']);
         
-        if ($costo < 0) {
-            $costo = 0;
+        if ($costo_coins < 0) {
+            $costo_coins = 0;
         }
         
         $coins_manager = Coins_Manager::get_instance();
-        $coins_manager->set_costo_coins_producto($post_id, $costo);
+        $coins_manager->set_costo_coins_producto($post_id, $costo_coins);
     }
 }
 add_action('save_post_product', 'coins_save_product_metabox');
+
+/**
+ * Mostrar aviso en producto si es canjeable
+ */
+function coins_add_product_admin_notice() {
+    global $post;
+    
+    if (!$post || $post->post_type !== 'product') {
+        return;
+    }
+    
+    $coins_manager = Coins_Manager::get_instance();
+    $costo_coins = $coins_manager->get_costo_coins_producto($post->ID);
+    
+    if ($costo_coins > 0) {
+        ?>
+        <div class="notice notice-info" style="border-left-color: #da0480;">
+            <p>
+                <strong>🪙 Producto canjeable con coins:</strong>
+                Este producto puede ser canjeado por <strong><?php echo $coins_manager->format_coins($costo_coins); ?> coins</strong>.
+            </p>
+        </div>
+        <?php
+    }
+}
+add_action('edit_form_after_title', 'coins_add_product_admin_notice');
 ?>
